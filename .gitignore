@@ -1,0 +1,30 @@
+# Compiled files
+*.exe
+*.o
+*.obj
+*.out
+*.dsym
+
+# Build artifacts
+main
+FastXplorer
+FastXplorer.exe
+game
+game.exe
+
+# IDE and editor files
+.vscode/
+.vs/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Assets (if large)
+# assets/

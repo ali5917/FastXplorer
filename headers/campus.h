@@ -6,24 +6,25 @@
 #include <queue>
 #include <string>
 #include "settings.h"
+using namespace std;
 
 class Building {
 private:
-    std::string name;
+    string name;
     Vector2 gridTopLeft;
     Vector2 gridBottomRight;
-    std::string description;
+    string description;
     bool isVisited;
     int visitOrder;
     
 public:
-    Building(const std::string& n, Vector2 topLeft, Vector2 bottomRight, 
-             const std::string& desc = "")
+    Building(const string& n, Vector2 topLeft, Vector2 bottomRight, 
+             const string& desc = "")
         : name(n), gridTopLeft(topLeft), gridBottomRight(bottomRight),
           description(desc), isVisited(false), visitOrder(-1) {}
     
-    const std::string& getName() const { return name; }
-    const std::string& getDescription() const { return description; }
+    const string& getName() const { return name; }
+    const string& getDescription() const { return description; }
     Vector2 getGridTopLeft() const { return gridTopLeft; }
     Vector2 getGridBottomRight() const { return gridBottomRight; }
     Vector2 getGridCenter() const {
@@ -56,8 +57,8 @@ public:
 class Campus {
 private:
     int grid[GRID_ROWS][GRID_COLS];
-    std::vector<Building> buildings;
-    std::vector<Vector2> currentPath;
+    vector<Building> buildings;
+    vector<Vector2> currentPath;
     Texture2D campusBackground;
     bool isBackgroundLoaded;
     
@@ -81,12 +82,12 @@ public:
     void addBuilding(const Building& building);
     Building* getBuilding(int index);
     int getBuildingCount() const { return buildings.size(); }
-    const std::vector<Building>& getBuildings() const { return buildings; }
+    const vector<Building>& getBuildings() const { return buildings; }
 
-    std::vector<Vector2> findPath(Vector2 start, Vector2 dest);
+    vector<Vector2> findPath(Vector2 start, Vector2 dest);
     void setCustomPath(Vector2 start, Vector2 dest);
     void clearPath();
-    const std::vector<Vector2>& getCurrentPath() const { return currentPath; }
+    const vector<Vector2>& getCurrentPath() const { return currentPath; }
 
     void draw() const;
     void drawPath() const;

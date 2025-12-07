@@ -1,10 +1,11 @@
-#include <raylib.h>
+#include "raylib.h"
+#include "rlgl.h"
 #include "../headers/settings.h"
 #include "../headers/player.h"
 #include "../headers/campus.h"
 #include "../headers/introScreen.h"
+#include <iostream>
 #include <string>
-#include <bits/stdc++.h>
 using namespace std;
 
 class FastXplorerSystem {
@@ -353,16 +354,26 @@ public:
         
         EndDrawing();
     }
-    
-
 };
 
 int main() {
-    // Set fullscreen mode
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    // Window setup: create windowed first, then toggle fullscreen for safer viewport sizing
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "FastXplorer - Campus Navigation");
-    SetTargetFPS(60);
+    ToggleFullscreen();
 
+    // Force viewport to reported render size and warn on mismatch
+    int renderW = GetRenderWidth();
+    int renderH = GetRenderHeight();
+    int screenW = GetScreenWidth();
+    int screenH = GetScreenHeight();
+    rlViewport(0, 0, renderW, renderH);
+    if (renderW != screenW || renderH != screenH) {
+        TraceLog(LOG_WARNING, "Render size (%d x %d) != screen size (%d x %d). GPU/driver may be scaling.", renderW, renderH, screenW, screenH);
+    }
+
+    SetTargetFPS(60);
+    
     FastXplorerSystem game;
     game.runGame();
 

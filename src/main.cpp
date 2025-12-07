@@ -1,4 +1,5 @@
 #include <raylib.h>
+#include "rlgl.h"
 #include "../headers/settings.h"
 #include "../headers/player.h"
 #include "../headers/campus.h"
@@ -357,14 +358,32 @@ public:
 
 };
 
-int main() {
-    // Set fullscreen mode
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+int main()
+{
+    SetConfigFlags(FLAG_WINDOW_HIGHDPI);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "FastXplorer - Campus Navigation");
+
+    ToggleFullscreen();   // safer than startup fullscreen
     SetTargetFPS(60);
+
+    int renderW = GetRenderWidth();
+    int renderH = GetRenderHeight();
+    int screenW = GetScreenWidth();
+    int screenH = GetScreenHeight();
+
+    // Force sync without rlViewport
+    SetWindowSize(renderW, renderH);
+
+    if (renderW != screenW || renderH != screenH)
+    {
+        TraceLog(LOG_WARNING,
+            "Render size (%d x %d) != screen size (%d x %d). GPU/driver scaling active.",
+            renderW, renderH, screenW, screenH);
+    }
 
     FastXplorerSystem game;
     game.runGame();
 
     return 0;
 }
+

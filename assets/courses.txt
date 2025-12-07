@@ -21,7 +21,7 @@ Year 3
 3, CN Lab, Lab
 4, SE, Theory
 5, AI, Theory
-6, Computer Architecture, Theory
+6, CA, Theory
 7, PDC, Theory
 8, Advanced DBMS, Theory
 Year 4

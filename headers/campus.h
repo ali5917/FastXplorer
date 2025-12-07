@@ -30,6 +30,8 @@ public:
         return {(gridTopLeft.x + gridBottomRight.x) / 2.0f,
                 (gridTopLeft.y + gridBottomRight.y) / 2.0f};
     }
+    Vector2 getGridBottomLeft() const { return {gridTopLeft.x, gridBottomRight.y}; }
+    Vector2 getGridTopRight() const { return {gridBottomRight.x, gridTopLeft.y}; }
     bool getVisited() const { return isVisited; }
     int getVisitOrder() const { return visitOrder; }
     
@@ -56,8 +58,6 @@ private:
     int grid[GRID_ROWS][GRID_COLS];
     std::vector<Building> buildings;
     std::vector<Vector2> currentPath;
-    int startBuildingIndex;
-    int destBuildingIndex;
     Texture2D campusBackground;
     bool isBackgroundLoaded;
     
@@ -81,11 +81,11 @@ public:
     void addBuilding(const Building& building);
     Building* getBuilding(int index);
     int getBuildingCount() const { return buildings.size(); }
+    const std::vector<Building>& getBuildings() const { return buildings; }
 
     std::vector<Vector2> findPath(Vector2 start, Vector2 dest);
-    void selectRandomStartAndDest();
-    Building* getStartBuilding();
-    Building* getDestBuilding();
+    void setCustomPath(Vector2 start, Vector2 dest);
+    void clearPath();
     const std::vector<Vector2>& getCurrentPath() const { return currentPath; }
 
     void draw() const;

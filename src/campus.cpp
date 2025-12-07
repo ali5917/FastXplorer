@@ -4,7 +4,7 @@
 #include <queue>
 #include <vector>
 
-Campus::Campus() : startBuildingIndex(-1), destBuildingIndex(-1), isBackgroundLoaded(false) {
+Campus::Campus() : isBackgroundLoaded(false) {
     initializeGrid();
 
     campusBackground = LoadTexture("assets/Top View.png");
@@ -36,7 +36,7 @@ Campus::Campus() : startBuildingIndex(-1), destBuildingIndex(-1), isBackgroundLo
     addBuilding(Building("R-7", {20, 4}, {20, 7}, "Classroom inside AB2"));
     addBuilding(Building("Lab 4", {20, 9}, {21, 10}, "Lab inside AB2"));
     addBuilding(Building("Faculty Office", {22, 4}, {23, 7}, "Faculty inside AB2"));
-    addBuilding(Building("Reading Hall", {20, 16}, {23, 19}, "Reading area inside AB2"));
+    addBuilding(Building("Reading Hall", {22, 16}, {23, 19}, "Reading area inside AB2"));
 }
 
 Campus::~Campus() {
@@ -51,8 +51,8 @@ void Campus::initializeGrid() {
         {0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,1,1,1,1,0,0,0},
         {0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0},
-        {1,1,0,1,1,1,1,0,1,1,1,0,0,0,0,0,1,1,1,0,1,1,1,1},
-        {1,1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1},
+        {1,1,0,1,1,1,1,0,1,1,1,0,0,0,0,0,0,1,1,0,1,1,1,1},
+        {1,1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1},
         {0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
         {1,1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
         {1,1,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
@@ -61,14 +61,14 @@ void Campus::initializeGrid() {
         {1,1,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
         {0,0,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
         {0,0,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
+        {1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
+        {1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1},
+        {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
+        {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
+        {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1}
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
     
     memcpy(grid, campusLayout, sizeof(campusLayout));
@@ -92,7 +92,7 @@ bool Campus::isWalkable(int row, int col) const {
         const std::string& name = building.getName();
         if ((name == "Academic Block 1" || name == "Academic Block 2" || name == "Multipurpose Building") &&
             building.contains({(float)col, (float)row})) { 
-            // check if inside other buildings within these blocks - like labs and classrooms
+            // check if inside other buildings within these blocks like labs and classrooms
             bool insideSubBuilding = false;
             for (const auto& subBuilding : buildings) {
                 if (subBuilding.getName() != name && 
@@ -105,7 +105,7 @@ bool Campus::isWalkable(int row, int col) const {
         }
     }
     
-    // Otherwise, check the grid (0 = walkable path, 1 = wall/obstacle)
+    // check the grid (0 = walkable path, 1 = wall ya obstacle)
     return grid[row][col] == 0;
 }
 
@@ -126,8 +126,18 @@ Building* Campus::getBuilding(int index) {
 
 std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
     std::vector<Vector2> path;
+
+    int startX = (int)start.x;
+    int startY = (int)start.y;
+    int destX = (int)dest.x;
+    int destY = (int)dest.y;
     
-    // BFS implementation
+    // check if start and dest are valid and walkable
+    if (!isWalkable(startY, startX) || !isWalkable(destY, destX)) {
+        return path; // returns empty path
+    }
+    
+    // Graph BFS ke marks :)
     bool visited[GRID_ROWS][GRID_COLS];
     memset(visited, false, sizeof(visited));
     
@@ -140,9 +150,9 @@ std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
     
     std::queue<Vector2> q;
     q.push(start);
-    visited[(int)start.y][(int)start.x] = true;
+    visited[startY][startX] = true;
     
-    // Direction vectors: right, left, down, up
+    // direction vectors: right, left, down, up
     int dx[] = {1, -1, 0, 0};
     int dy[] = {0, 0, 1, -1};
     
@@ -152,15 +162,18 @@ std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
         Vector2 current = q.front();
         q.pop();
         
-        if ((int)current.x == (int)dest.x && (int)current.y == (int)dest.y) {
+        int curX = (int)current.x;
+        int curY = (int)current.y;
+        
+        if (curX == destX && curY == destY) {
             found = true;
             break;
         }
         
-        // Explore neighbors
+        // explore neighbors
         for (int i = 0; i < 4; i++) {
-            int newX = (int)current.x + dx[i];
-            int newY = (int)current.y + dy[i];
+            int newX = curX + dx[i];
+            int newY = curY + dy[i];
             
             if (isWalkable(newY, newX) && !visited[newY][newX]) {
                 visited[newY][newX] = true;
@@ -170,10 +183,10 @@ std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
         }
     }
     
-    // Reconstruct path
+    // reconstruct path
     if (found) {
         Vector2 current = dest;
-        while (current.x != start.x || current.y != start.y) {
+        while ((int)current.x != startX || (int)current.y != startY) {
             path.push_back(current);
             current = parent[(int)current.y][(int)current.x];
         }
@@ -184,25 +197,12 @@ std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
     return path;
 }
 
-void Campus::selectRandomStartAndDest() {
-    if (buildings.size() < 2) return;
-    
-    startBuildingIndex = GetRandomValue(0, buildings.size() - 1);
-    do {
-        destBuildingIndex = GetRandomValue(0, buildings.size() - 1);
-    } while (destBuildingIndex == startBuildingIndex);
-    
-    // Calculate path using top-left grid cell of each building
-    currentPath = findPath(buildings[startBuildingIndex].getGridTopLeft(), 
-                          buildings[destBuildingIndex].getGridTopLeft());
+void Campus::setCustomPath(Vector2 start, Vector2 dest) {
+    currentPath = findPath(start, dest);
 }
 
-Building* Campus::getStartBuilding() {
-    return getBuilding(startBuildingIndex);
-}
-
-Building* Campus::getDestBuilding() {
-    return getBuilding(destBuildingIndex);
+void Campus::clearPath() {
+    currentPath.clear();
 }
 
 void Campus::draw() const {
@@ -210,29 +210,6 @@ void Campus::draw() const {
         DrawTexture(campusBackground, 0, 0, WHITE);
     } else {
         DrawRectangle(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, LIGHTGRAY);
-    }
-    // for debugging purposes only
-    for (const auto& building : buildings) {
-        Vector2 topLeft = building.getGridTopLeft();
-        Vector2 bottomRight = building.getGridBottomRight();
-        
-        Rectangle rect = {
-            topLeft.x * CELL_WIDTH,
-            topLeft.y * CELL_HEIGHT,
-            (bottomRight.x - topLeft.x + 1) * CELL_WIDTH,
-            (bottomRight.y - topLeft.y + 1) * CELL_HEIGHT
-        };
-        
-        DrawRectangleRec(rect, ColorAlpha(GREEN, 0.3f));
-        DrawRectangleLinesEx(rect, 2, GREEN);
-
-        Vector2 center = {
-            rect.x + rect.width / 2,
-            rect.y + rect.height / 2
-        };
-        const char* name = building.getName().c_str();
-        int textWidth = MeasureText(name, 12);
-        DrawText(name, center.x - textWidth/2, center.y - 6, 12, BLACK);
     }
 }
 

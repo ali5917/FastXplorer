@@ -61,6 +61,7 @@ private:
     vector<Vector2> currentPath;
     Texture2D campusBackground;
     bool isBackgroundLoaded;
+    vector<string> walkableBuildingNames;
     
     struct Node {
         Vector2 pos;
@@ -88,6 +89,10 @@ public:
     void setCustomPath(Vector2 start, Vector2 dest);
     void clearPath();
     const vector<Vector2>& getCurrentPath() const { return currentPath; }
+
+    void addWalkableBuilding(const string& buildingName);
+    void removeWalkableBuilding(const string& buildingName);
+    void clearWalkableBuildings();
 
     void draw() const;
     void drawPath() const;

@@ -87,6 +87,16 @@ bool Campus::isValid(int row, int col) const {
 bool Campus::isWalkable(int row, int col) const {
     if (!isValid(row, col)) return false;
     
+    // check if inside a walkable standalone building (special Lab 3 case)
+    for (const auto& walkableName : walkableBuildingNames) {
+        for (const auto& building : buildings) {
+            if (building.getName() == walkableName && 
+                building.contains({(float)col, (float)row})) {
+                return true;
+            }
+        }
+    }
+    
     // check if the position is inside Academic Block 1,2 or Multipurpose Buildings but not other buildings
     for(const auto& building : buildings) {
         const std::string& name = building.getName();
@@ -94,11 +104,21 @@ bool Campus::isWalkable(int row, int col) const {
             building.contains({(float)col, (float)row})) { 
             // check if inside other buildings within these blocks like labs and classrooms
             bool insideSubBuilding = false;
+            std::string subBuildingName = "";
             for (const auto& subBuilding : buildings) {
                 if (subBuilding.getName() != name && 
                     subBuilding.contains({(float)col, (float)row})) {
                     insideSubBuilding = true;
+                    subBuildingName = subBuilding.getName();
                     break;
+                }
+            }
+            // If inside a sub-building, check if it's in the walkable list
+            if (insideSubBuilding) {
+                for (const auto& walkableName : walkableBuildingNames) {
+                    if (subBuildingName == walkableName) {
+                        return true;
+                    }
                 }
             }
             return !insideSubBuilding;
@@ -203,6 +223,25 @@ void Campus::setCustomPath(Vector2 start, Vector2 dest) {
 
 void Campus::clearPath() {
     currentPath.clear();
+}
+
+void Campus::addWalkableBuilding(const string& buildingName) {
+    // Check if already in list
+    for (const auto& name : walkableBuildingNames) {
+        if (name == buildingName) return;
+    }
+    walkableBuildingNames.push_back(buildingName);
+}
+
+void Campus::removeWalkableBuilding(const string& buildingName) {
+    walkableBuildingNames.erase(
+        std::remove(walkableBuildingNames.begin(), walkableBuildingNames.end(), buildingName),
+        walkableBuildingNames.end()
+    );
+}
+
+void Campus::clearWalkableBuildings() {
+    walkableBuildingNames.clear();
 }
 
 void Campus::draw() const {

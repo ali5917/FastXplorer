@@ -1,0 +1,34 @@
+Year 1
+1, PF, Theory
+2, PF Lab, Lab
+3, OOP, Theory
+4, OOP Lab, Lab
+5, Calculus, Theory
+6, MVC, Theory
+7, DLD, Theory
+Year 2
+1, DS, Theory
+2, DS Lab, Lab
+3, Discrete, Theory
+4, LA, Theory
+5, COAL, Theory
+6, DBMS, Theory
+7, OS, Theory
+8, Stats, Theory
+Year 3
+1, DAA, Theory
+2, CN, Theory
+3, CN Lab, Lab
+4, SE, Theory
+5, AI, Theory
+6, Computer Architecture, Theory
+7, PDC, Theory
+8, Advanced DBMS, Theory
+Year 4
+1, Compiler Construction, Theory
+2, Information Security, Theory
+3, FYP - I, Theory
+4, FYP - II, Theory
+5, Elective - I, Theoryff
+6, Elective - II, Theory
+7, Elective - III, Theory

@@ -16,11 +16,21 @@ Player::Player(Vector2 startGridPos, float s)
 }
 
 void Player::input() {
-    direction.x = int(IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) - 
-                  int(IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A));
-    direction.y = int(IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) - 
-                  int(IsKeyDown(KEY_UP) || IsKeyDown(KEY_W));
-    direction = normalized(direction);
+    bool moveRight = IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D);
+    bool moveLeft = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A);
+    bool moveDown = IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S);
+    bool moveUp = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
+
+    if (moveUp || moveDown) {
+        direction.x = 0;
+        direction.y = int(moveDown) - int(moveUp);
+    } else if (moveLeft || moveRight) {
+        direction.x = int(moveRight) - int(moveLeft);
+        direction.y = 0;
+    } else {
+        direction.x = 0;
+        direction.y = 0;
+    }
 }
 
 void Player::move(float dt, const class Campus* campus) {

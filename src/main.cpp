@@ -5,6 +5,7 @@
 #include "../headers/campus.h"
 #include "../headers/introScreen.h"
 #include "../headers/musicPlayer.h"
+#include "../headers/schedule.h"
 #include <iostream>
 #include <string>
 using namespace std;
@@ -15,6 +16,8 @@ public:
         INTRO_SCREEN,
         MAIN_GAME,
         PATH_SELECT,
+        REGISTRATION,
+        TIMETABLE_VIEW,
         GAME_OVER
     };
 
@@ -28,6 +31,67 @@ private:
     int selectedEndBuilding;
     Vector2 currentDestCell;
     MusicPlayer musicPlayer;
+    Scheduler scheduler;
+    Texture2D registrationBackground;
+    string previousSlotBuilding;
+    
+    // simple notification
+    bool hasNotification = false;
+    string notificationText;
+    float notificationTimer = 0.0f;
+
+    void showNotification(const string& msg, float duration = 2.5f) {
+        hasNotification = true;
+        notificationText = msg;
+        notificationTimer = duration;
+    }
+
+    void updateNotification(float dt) {
+        if (!hasNotification) return;
+        notificationTimer -= dt;
+        if (notificationTimer <= 0.0f) {
+            hasNotification = false;
+            notificationText.clear();
+        }
+    }
+
+    void drawNotification() {
+        if (!hasNotification) return;
+        int pad = 12;
+        int fontSize = 20;
+        int textWidth = MeasureText(notificationText.c_str(), fontSize);
+        int boxW = textWidth + pad * 2;
+        int boxH = fontSize + pad * 2;
+        int x = WINDOW_WIDTH - boxW - 20;
+        int y = 20;
+        DrawRectangleRounded({(float)x, (float)y, (float)boxW, (float)boxH}, 0.2f, 8, Fade(BLACK, 0.65f));
+        DrawText(notificationText.c_str(), x + pad, y + pad, fontSize, RAYWHITE);
+    }
+
+    void refreshWalkablesForCurrentSlot() {
+        // ALL OF THIS TO PREVENT TRAPPING INSIDE THE BUILDING 
+        vector<string> newWalkables;
+        newWalkables.push_back("One Stop");
+        
+        TimeSlot* slot = scheduler.getCurrentSlotInfo();
+        string currentBuilding = (slot && slot->course) ? slot->building : "";
+        
+        // Keep previous building walkable only if it's different from current
+        if (!previousSlotBuilding.empty() && previousSlotBuilding != currentBuilding) {
+            newWalkables.push_back(previousSlotBuilding);
+        }
+        
+        if (!currentBuilding.empty()) {
+            newWalkables.push_back(currentBuilding);
+            showNotification("Now walkable: " + currentBuilding);
+        }
+        
+        // Now replace all at once
+        campus.clearWalkableBuildings();
+        for (const auto& name : newWalkables) {
+            campus.addWalkableBuilding(name);
+        }
+    }
 
     void loadMusicTracks() {
         // hardcoded tracks smh, I couln't find dynamic way to list files
@@ -55,11 +119,12 @@ private:
     }
     
 public:
-    FastXplorerSystem() : state(INTRO_SCREEN), player(nullptr), selectedStartBuilding(-1), selectedEndBuilding(-1), currentDestCell({-1, -1}) {
-        // font
-        gameFont = LoadFontEx("C:/raylib/raylib/examples/text/resources/fonts/pixantiqua.ttf", FONT_SIZE, NULL, 0);
+    FastXplorerSystem() : state(INTRO_SCREEN), player(nullptr), selectedStartBuilding(-1), selectedEndBuilding(-1), currentDestCell({-1, -1}), previousSlotBuilding("") {
+        // font - Montserrat everywhere
+        gameFont = LoadFontEx("assets/Montserrat-SemiBold.ttf", FONT_SIZE, NULL, 0);
         if (gameFont.texture.id == 0) {
             gameFont = GetFontDefault();
+            TraceLog(LOG_WARNING, "Failed to load Montserrat font");
         }
         
         player = new Player({16, 20}, PLAYER_SPEED);
@@ -67,12 +132,36 @@ public:
 
         loadMusicTracks();
         
+        // registration background
+        registrationBackground = LoadTexture("assets/Registration Desk.png");
+        if (registrationBackground.id == 0) {
+            TraceLog(LOG_WARNING, "Failed to load registration background");
+        }
+        
+        // make One Stop walkable for registration
+        campus.addWalkableBuilding("One Stop");
+
+        if (!scheduler.initialize("assets/courses.txt")) {
+            TraceLog(LOG_WARNING, "Failed to initialize scheduler");
+        }
+        
+        scheduler.loadFromCSV("assets/schedule_save.csv");
+        
+        // make current slot building walkable if year is registered
+        if (scheduler.getSelectedYear() > 0) {
+            refreshWalkablesForCurrentSlot();
+            showNotification("Schedule loaded: Year " + to_string(scheduler.getSelectedYear()));
+        }
+        
     }
 
     ~FastXplorerSystem() {
         delete player;
         if (gameFont.texture.id != GetFontDefault().texture.id) {
             UnloadFont(gameFont);
+        }
+        if (registrationBackground.id != 0) {
+            UnloadTexture(registrationBackground);
         }
         CloseWindow();
     }
@@ -86,6 +175,7 @@ public:
 
     void update() {
         float dt = GetFrameTime();
+        updateNotification(dt);
         
         if(state == INTRO_SCREEN) {
             if (IsKeyPressed(KEY_F)) {
@@ -95,9 +185,88 @@ public:
             // collision detection
             player->update(dt, &campus);
 
+            // check if player has exited the previous slot building (& the adjacent nodes asw to avoid trapping)
+            Vector2 playerCell = player->getGridPos();
+            if (!previousSlotBuilding.empty()) {
+                // Check if current slot is in the same building as previous
+                TimeSlot* currentSlot = scheduler.getCurrentSlotInfo();
+                string currentBuilding = (currentSlot && currentSlot->course) ? currentSlot->building : "";
+                bool sameBuilding = (previousSlotBuilding == currentBuilding);
+                
+                bool stillNearPrevious = false;
+                for (int i = 0; i < campus.getBuildingCount(); i++) {
+                    Building* b = campus.getBuilding(i);
+                    if (b && b->getName() == previousSlotBuilding) {
+                        Vector2 topLeft = b->getGridTopLeft();
+                        Vector2 bottomRight = b->getGridBottomRight();
+                        
+                        // checking if the player is inside or adjacent to building (1 cell)
+                        if (playerCell.x >= topLeft.x - 1 && playerCell.x <= bottomRight.x + 1 &&
+                            playerCell.y >= topLeft.y - 1 && playerCell.y <= bottomRight.y + 1) {
+                            stillNearPrevious = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // If player is far from building (not inside or adjacent) AND current slot is in different building, remove walkability
+                if (!stillNearPrevious && !sameBuilding) {
+                    campus.removeWalkableBuilding(previousSlotBuilding);
+                    showNotification("Exited " + previousSlotBuilding);
+                    previousSlotBuilding.clear();
+                }
+            }
+
+            // check if player is at One Stop
+            Building* oneStop = nullptr;
+            for (int i = 0; i < campus.getBuildingCount(); i++) {
+                Building* b = campus.getBuilding(i);
+                if (b && b->getName() == "One Stop" && b->contains(playerCell)) {
+                    oneStop = b;
+                    break;
+                }
+            }
+            
+            if (oneStop && IsKeyPressed(KEY_ENTER)) {
+                state = REGISTRATION;
+            }
+
+            // check if player is at current slot's building for attendance
+            if (scheduler.getSelectedYear() > 0) {
+                TimeSlot* currentSlot = scheduler.getCurrentSlotInfo();
+                if (currentSlot && currentSlot->course) {
+                    
+                    Building* slotBuilding = nullptr;
+                    for (int i = 0; i < campus.getBuildingCount(); i++) {
+                        Building* b = campus.getBuilding(i);
+                        if (b && b->getName() == currentSlot->building && b->contains(playerCell)) {
+                            slotBuilding = b;
+                            break;
+                        }
+                    }
+                    
+                    // mark attendance it pressed K
+                    if (slotBuilding && IsKeyPressed(KEY_K)) {
+                        // store current as previous
+                        previousSlotBuilding = currentSlot->building;
+                        
+                        scheduler.advanceSlot();
+                        scheduler.saveToCSV("assets/schedule_save.csv");
+                        refreshWalkablesForCurrentSlot();
+                        
+                        TimeSlot* nextSlot = scheduler.getCurrentSlotInfo();
+                        if (nextSlot && nextSlot->course) {
+                            showNotification("Attendance marked! Next: " + nextSlot->building);
+                        } else {
+                            showNotification("All classes completed!");
+                            previousSlotBuilding.clear();
+                        }
+                    }
+                }
+            }
+
             // clear the path and target when reached destination
             if (selectedEndBuilding >= 0 && currentDestCell.x >= 0 && currentDestCell.y >= 0) {
-                Vector2 playerCell = player->getGridPos();
                 if ((int)playerCell.x == (int)currentDestCell.x && (int)playerCell.y == (int)currentDestCell.y) {
                     campus.clearPath();
                     selectedEndBuilding = -1;
@@ -186,6 +355,11 @@ public:
             }
 
             musicPlayer.update();
+            
+            // open timetable view
+            if (scheduler.getSelectedYear() > 0 && IsKeyPressed(KEY_T)) {
+                state = TIMETABLE_VIEW;
+            }
             
         } else if (state == PATH_SELECT) {
             // Handle mouse clicks for destination building selection
@@ -312,6 +486,42 @@ public:
                 selectedEndBuilding = -1;
             }
             
+        } else if (state == REGISTRATION) {
+            
+            int yearSelected = -1;
+            if (IsKeyPressed(KEY_ONE)) yearSelected = 1;
+            else if (IsKeyPressed(KEY_TWO)) yearSelected = 2;
+            else if (IsKeyPressed(KEY_THREE)) yearSelected = 3;
+            else if (IsKeyPressed(KEY_FOUR)) yearSelected = 4;
+            
+            if (yearSelected > 0) {
+                // Register the year and assign courses
+                if (scheduler.registerYear(yearSelected)) {
+                    scheduler.saveToCSV("assets/schedule_save.csv");
+                    refreshWalkablesForCurrentSlot();
+                    showNotification("Registered Year " + to_string(yearSelected));
+                } else {
+                    showNotification("Registration failed");
+                }
+                state = MAIN_GAME;
+            }
+            
+            if (IsKeyPressed(KEY_R)) {
+                state = MAIN_GAME;
+            }
+        }
+        else if (state == TIMETABLE_VIEW) {
+            // regenerate schedule
+            if (IsKeyPressed(KEY_G)) {
+                scheduler.regenerateSchedule();
+                scheduler.saveToCSV("assets/schedule_save.csv");
+                refreshWalkablesForCurrentSlot();
+                showNotification("Timetable regenerated");
+            }
+            // close timetable
+            if (IsKeyPressed(KEY_T) || IsKeyPressed(KEY_ESCAPE)) {
+                state = MAIN_GAME;
+            }
         }
         
     }
@@ -325,6 +535,54 @@ public:
             campus.drawPath();
             musicPlayer.draw();
             player->draw();
+            
+            // Draw current slot
+            if (scheduler.getSelectedYear() > 0) {
+                TimeSlot* slot = scheduler.getCurrentSlotInfo();
+                if (slot && slot->course) {
+                    string hudTitle = "Slot " + to_string(scheduler.getCurrentSlot()) + " (Year " + to_string(scheduler.getSelectedYear()) + ")";
+                    string hudLine1 = slot->course->name;
+                    string hudLine2 = slot->building + " @ " + to_string(slot->startHour) + ":00";
+                    int fontSize = 20;
+                    int width = MeasureText(hudTitle.c_str(), fontSize);
+                    width = max(width, MeasureText(hudLine1.c_str(), fontSize));
+                    width = max(width, MeasureText(hudLine2.c_str(), fontSize));
+                    width += 24;
+                    int height = fontSize * 3 + 28;
+                    int x = WINDOW_WIDTH - width - 20;
+                    int y = 80;
+                    DrawRectangleRounded({(float)x, (float)y, (float)width, (float)height}, 0.2f, 8, Fade(BLACK, 0.55f));
+                    DrawText(hudTitle.c_str(), x + 12, y + 8, fontSize, RAYWHITE);
+                    DrawText(hudLine1.c_str(), x + 12, y + 8 + fontSize, fontSize, LIGHTGRAY);
+                    DrawText(hudLine2.c_str(), x + 12, y + 8 + fontSize * 2, fontSize, SKYBLUE);
+                }
+            }
+            
+            // Show "Press K to mark attendance" prompt when in correct building
+            if (scheduler.getSelectedYear() > 0) {
+                TimeSlot* slot = scheduler.getCurrentSlotInfo();
+                if (slot && slot->course) {
+                    Vector2 playerCell = player->getGridPos();
+                    Building* slotBuilding = nullptr;
+                    for (int i = 0; i < campus.getBuildingCount(); i++) {
+                        Building* b = campus.getBuilding(i);
+                        if (b && b->getName() == slot->building && b->contains(playerCell)) {
+                            slotBuilding = b;
+                            break;
+                        }
+                    }
+                    
+                    if (slotBuilding) {
+                        const char* prompt = "Press K to mark attendance";
+                        int promptWidth = MeasureText(prompt, 28);
+                        int promptX = WINDOW_WIDTH / 2 - promptWidth / 2;
+                        int promptY = WINDOW_HEIGHT - 100;
+                        DrawRectangleRounded({(float)(promptX - 20), (float)(promptY - 10), (float)(promptWidth + 40), 50.0f}, 0.2f, 8, Fade(GREEN, 0.8f));
+                        DrawText(prompt, promptX, promptY, 28, WHITE);
+                    }
+                }
+            }
+            drawNotification();
         } else if (state == PATH_SELECT) {
             campus.draw();
             // check hoverrrr so cool lol
@@ -365,7 +623,7 @@ public:
             }
             
             // instructions 
-            const char* title = "SELECT SHORTEST PATH";
+            const char* title = "SELECT DESTINATION FOR SHORTEST PATH";
             int titleWidth = MeasureText(title, 40);
             DrawText(title, WINDOW_WIDTH/2 - titleWidth/2, 50, 40, DARKGREEN);
             
@@ -378,6 +636,18 @@ public:
             const char* cancelText = "Press R to cancel";
             int cancelWidth = MeasureText(cancelText, 16);
             DrawText(cancelText, WINDOW_WIDTH/2 - cancelWidth/2, WINDOW_HEIGHT - 40, 16, LIGHTGRAY);
+            drawNotification();
+        } else if (state == TIMETABLE_VIEW) {
+            scheduler.draw(gameFont);
+            drawNotification();
+        } else if (state == REGISTRATION) {
+            // Draw registration background
+            if (registrationBackground.id != 0) {
+                DrawTexture(registrationBackground, 0, 0, WHITE);
+            } else {
+                ClearBackground(RAYWHITE);
+            }
+            drawNotification();
         } else if (state == INTRO_SCREEN) {
             introScreen.draw();
         }

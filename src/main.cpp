@@ -4,6 +4,7 @@
 #include "../headers/player.h"
 #include "../headers/campus.h"
 #include "../headers/introScreen.h"
+#include "../headers/musicPlayer.h"
 #include <iostream>
 #include <string>
 using namespace std;
@@ -13,7 +14,6 @@ public:
     enum GameState {
         INTRO_SCREEN,
         MAIN_GAME,
-        PAUSED,
         PATH_SELECT,
         GAME_OVER
     };
@@ -27,6 +27,32 @@ private:
     int selectedStartBuilding;
     int selectedEndBuilding;
     Vector2 currentDestCell;
+    MusicPlayer musicPlayer;
+
+    void loadMusicTracks() {
+        // hardcoded tracks smh, I couln't find dynamic way to list files
+        // pair syntax filename, title
+        vector<pair<string, string>> tracks = {
+            {"Asmoo.mp3", "Asmoo"},
+            {"ComfortablePath.mp3", "Comfortable Path"},
+            {"Destiny.mp3", "Destiny"},
+            {"FiyyaHubbun.mp3", "Fiyya Hubbun"},
+            {"Frozen.mp3", "Frozen"},
+            {"LostInDreams.mp3", "Lost In Dreams"},
+            {"OnMyWay.mp3", "On My Way"}
+        };
+        
+        for (const auto& track : tracks) {
+            string filePath = "assets/music/" + track.first;
+            Music music = LoadMusicStream(filePath.c_str());
+            if (IsMusicValid(music)) {
+                float duration = GetMusicTimeLength(music);
+                musicPlayer.addSong(track.second, duration, music);
+            } else {
+                TraceLog(LOG_WARNING, "Failed to load music: %s", filePath.c_str());
+            }
+        }
+    }
     
 public:
     FastXplorerSystem() : state(INTRO_SCREEN), player(nullptr), selectedStartBuilding(-1), selectedEndBuilding(-1), currentDestCell({-1, -1}) {
@@ -38,6 +64,9 @@ public:
         
         player = new Player({16, 20}, PLAYER_SPEED);
         campus.initializeGrid();
+
+        loadMusicTracks();
+        
     }
 
     ~FastXplorerSystem() {
@@ -77,7 +106,7 @@ public:
             }
             
             // path selection mode
-            if (IsKeyPressed(KEY_S)) {
+            if (IsKeyPressed(KEY_Q)) {
                 state = PATH_SELECT;
                 selectedStartBuilding = -1;
                 selectedEndBuilding = -1;
@@ -140,16 +169,24 @@ public:
                     currentDestCell = {-1, -1};
                 }
             }
-            // pause the game here
+
+            // music controls
             if (IsKeyPressed(KEY_P)) {
-                state = PAUSED;
+                musicPlayer.prev();
             }
+            if (IsKeyPressed(KEY_N)) {
+                musicPlayer.next();
+            }
+            if (IsKeyPressed(KEY_SPACE)) {
+                if (musicPlayer.getIsPlaying()) {
+                    musicPlayer.pause();
+                } else {
+                    musicPlayer.play();
+                }
+            }
+
+            musicPlayer.update();
             
-        } else if (state == PAUSED) {
-            // Unpause
-            if (IsKeyPressed(KEY_P) || IsKeyPressed(KEY_SPACE)) {
-                state = MAIN_GAME;
-            }
         } else if (state == PATH_SELECT) {
             // Handle mouse clicks for destination building selection
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -274,6 +311,7 @@ public:
                 selectedStartBuilding = -1;
                 selectedEndBuilding = -1;
             }
+            
         }
         
     }
@@ -284,17 +322,9 @@ public:
         
         if (state == MAIN_GAME) {
             campus.draw();
-            campus.drawPath(); // draw current path if any
+            campus.drawPath();
+            musicPlayer.draw();
             player->draw();
-        } else if (state == PAUSED) {
-            // draw paused state
-            DrawRectangle(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Fade(BLACK, 0.5f));
-            const char* pauseText = "PAUSED";
-            int textWidth = MeasureText(pauseText, 60);
-            DrawText(pauseText, WINDOW_WIDTH/2 - textWidth/2, WINDOW_HEIGHT/2 - 30, 60, WHITE);
-            const char* resumeText = "Press P to resume";
-            int resumeWidth = MeasureText(resumeText, 20);
-            DrawText(resumeText, WINDOW_WIDTH/2 - resumeWidth/2, WINDOW_HEIGHT/2 + 40, 20, LIGHTGRAY);
         } else if (state == PATH_SELECT) {
             campus.draw();
             // check hoverrrr so cool lol
@@ -372,10 +402,14 @@ int main() {
         TraceLog(LOG_WARNING, "Render size (%d x %d) != screen size (%d x %d). GPU/driver may be scaling.", renderW, renderH, screenW, screenH);
     }
 
+    // Initialize audio device for music playback
+    InitAudioDevice();
+
     SetTargetFPS(60);
     
     FastXplorerSystem game;
     game.runGame();
 
+    CloseAudioDevice();
     return 0;
 }

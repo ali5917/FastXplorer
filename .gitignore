@@ -27,4 +27,4 @@ Thumbs.db
 *.log
 
 # Assets (if large)
-# assets/
+assets/*.csv

@@ -24,8 +24,11 @@ private:
     Color color;
     int score;
     float size;
-
-public:
+    Texture2D textureStill;
+    Texture2D textureWalking;
+    float rotation;
+    
+    public:
     Player(Vector2 startGridPos = {1, 1}, float s = PLAYER_SPEED);
 
     void input();
@@ -33,7 +36,7 @@ public:
     void move(float dt, const class Campus* campus = nullptr);
     void update(float dt, const class Campus* campus = nullptr);
     
-    void draw() const;
+    void draw();
     
     Vector2 getPos() const { return pos; }
     Vector2 getGridPos() const { return gridPos; }

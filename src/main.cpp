@@ -18,6 +18,7 @@ public:
         PATH_SELECT,
         REGISTRATION,
         TIMETABLE_VIEW,
+        MANUAL,
         GAME_OVER
     };
 
@@ -33,6 +34,7 @@ private:
     MusicPlayer musicPlayer;
     Scheduler scheduler;
     Texture2D registrationBackground;
+    Texture2D manualBg;
     string previousSlotBuilding;
     
     // simple notification
@@ -152,6 +154,8 @@ public:
             refreshWalkablesForCurrentSlot();
             showNotification("Schedule loaded: Year " + to_string(scheduler.getSelectedYear()));
         }
+
+        manualBg = LoadTexture("assets/manual.png");
         
     }
 
@@ -162,6 +166,9 @@ public:
         }
         if (registrationBackground.id != 0) {
             UnloadTexture(registrationBackground);
+        }
+        if (manualBg.id != 0) {
+            UnloadTexture(manualBg);
         }
         CloseWindow();
     }
@@ -360,7 +367,21 @@ public:
             if (scheduler.getSelectedYear() > 0 && IsKeyPressed(KEY_T)) {
                 state = TIMETABLE_VIEW;
             }
-            
+
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                Vector2 mouse = GetMousePosition();
+
+                int cellX = mouse.x / CELL_WIDTH;
+                int cellY = mouse.y / CELL_HEIGHT;
+
+                if ((cellY == 20 || cellY == 21) && cellX == 0) {
+                    state = MANUAL;
+                }
+            }
+        } else if (state == MANUAL) {
+            if (IsKeyPressed(KEY_F)) {
+                state = MAIN_GAME;
+            }
         } else if (state == PATH_SELECT) {
             // Handle mouse clicks for destination building selection
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -650,6 +671,12 @@ public:
             drawNotification();
         } else if (state == INTRO_SCREEN) {
             introScreen.draw();
+        } else if (state == MANUAL) {
+            if (manualBg.id != 0) {
+                DrawTexture(manualBg, 0, 0, WHITE);
+            } else {
+                ClearBackground(RAYWHITE);
+            }
         }
         
         EndDrawing();

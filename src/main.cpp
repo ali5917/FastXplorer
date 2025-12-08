@@ -8,6 +8,9 @@
 #include "../headers/schedule.h"
 #include <iostream>
 #include <string>
+#include <cmath>
+#include <sstream>
+#include <algorithm>
 using namespace std;
 
 class FastXplorerSystem {
@@ -36,8 +39,11 @@ private:
     Texture2D registrationBackground;
     Texture2D manualBg;
     string previousSlotBuilding;
-    
-    // simple notification
+    string searchQuery;
+    vector<int> searchResults;
+    int searchSelectedIndex;
+
+    // notification system 
     bool hasNotification = false;
     string notificationText;
     float notificationTimer = 0.0f;
@@ -121,8 +127,7 @@ private:
     }
     
 public:
-    FastXplorerSystem() : state(INTRO_SCREEN), player(nullptr), selectedStartBuilding(-1), selectedEndBuilding(-1), currentDestCell({-1, -1}), previousSlotBuilding("") {
-        // font - Montserrat everywhere
+    FastXplorerSystem() : state(INTRO_SCREEN), player(nullptr), selectedStartBuilding(-1), selectedEndBuilding(-1), currentDestCell({-1, -1}), previousSlotBuilding(""), searchSelectedIndex(-1) {
         gameFont = LoadFontEx("assets/Montserrat-SemiBold.ttf", FONT_SIZE, NULL, 0);
         if (gameFont.texture.id == 0) {
             gameFont = GetFontDefault();
@@ -383,17 +388,73 @@ public:
                 state = MAIN_GAME;
             }
         } else if (state == PATH_SELECT) {
-            // Handle mouse clicks for destination building selection
+            // Text input for search
+            int key = GetCharPressed();
+            while (key > 0) {
+                if ((key >= 32 && key <= 126) && searchQuery.length() < 50) {
+                    searchQuery += (char)key;
+                }
+                key = GetCharPressed();
+            }
+            
+            // Backspace
+            if (IsKeyPressed(KEY_BACKSPACE) && !searchQuery.empty()) {
+                searchQuery.pop_back();
+            }
+            
+            // Update search results based on query
+            searchResults.clear();
+            if (!searchQuery.empty()) {
+                string queryLower = searchQuery;
+                // Simple lowercase conversion
+                for (char& c : queryLower) {
+                    if (c >= 'A' && c <= 'Z') c += 32;
+                }
+                
+                for (int i = 0; i < campus.getBuildingCount(); i++) {
+                    Building* b = campus.getBuilding(i);
+                    if (b) {
+                        string nameLower = b->getName();
+                        for (char& c : nameLower) {
+                            if (c >= 'A' && c <= 'Z') c += 32;
+                        }
+                        // Check if name starts with query (prefix matching)
+                        if (nameLower.length() >= queryLower.length() &&
+                            nameLower.substr(0, queryLower.length()) == queryLower) {
+                            searchResults.push_back(i);
+                        }
+                    }
+                }
+            }
+
+            // Clamp selection index to results
+            if (!searchResults.empty()) {
+                if (searchSelectedIndex < 0 || searchSelectedIndex >= (int)searchResults.size()) {
+                    searchSelectedIndex = 0;
+                }
+            } else {
+                searchSelectedIndex = -1;
+            }
+
+            // Up/Down navigation through results
+            if (!searchResults.empty()) {
+                if (IsKeyPressed(KEY_DOWN)) {
+                    searchSelectedIndex = (searchSelectedIndex + 1) % searchResults.size();
+                }
+                if (IsKeyPressed(KEY_UP)) {
+                    searchSelectedIndex = (searchSelectedIndex - 1 + searchResults.size()) % searchResults.size();
+                }
+            }
+            
+            // Handle mouse clicks for buildings
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                 Vector2 mousePos = GetMousePosition();
                 Vector2 gridPos = Player::pixelToGrid(mousePos);
                 
-                // Find which building was clicked (skip large block buildings)
                 int buildingIndex = -1;
                 for (int i = 0; i < campus.getBuildingCount(); i++) {
                     Building* b = campus.getBuilding(i);
                     if (b && b->contains(gridPos)) {
-                        // Skip large block buildings - only select buildings inside them
                         const string& name = b->getName();
                         if (name != "Multipurpose Building" && 
                             name != "Academic Block 1" && 
@@ -409,20 +470,30 @@ public:
                 }
             }
 
-            // Clear any existing path with R while in selection
-            if (IsKeyPressed(KEY_R)) {
+            // Enter key: select best match from search results
+            if (IsKeyPressed(KEY_ENTER)) {
+                if (!searchResults.empty()) {
+                    int pickIdx = (searchSelectedIndex >= 0 && searchSelectedIndex < (int)searchResults.size()) ? searchSelectedIndex : 0;
+                    selectedEndBuilding = searchResults[pickIdx];
+                } else if (!searchQuery.empty()) {
+                    showNotification("No buildings found");
+                }
+            }
+
+            // Cancel path selection with Ctrl (keeps search active)
+            if (IsKeyPressed(KEY_LEFT_CONTROL) || IsKeyPressed(KEY_RIGHT_CONTROL)) {
                 campus.clearPath();
                 selectedEndBuilding = -1;
                 currentDestCell = {-1, -1};
+                state = MAIN_GAME;
             }
             
-            // If destination building selected, calculate path from player position and return to main game
+            // Calculate and display path when building is selected
             if (selectedEndBuilding >= 0) {
                 Vector2 startPos = player->getGridPos();
                 Building* end = campus.getBuilding(selectedEndBuilding);
                 
                 if (end) {
-                    // Find nearest walkable cell adjacent to destination building
                     Vector2 endPos = end->getGridTopLeft();
                     bool foundEnd = false;
                     float minDistance = 999999.0f;
@@ -437,7 +508,7 @@ public:
                         if (campus.canWalkOn(candidate)) {
                             float dx = candidate.x - startPos.x;
                             float dy = candidate.y - startPos.y;
-                            float dist = dx * dx + dy * dy; // squared distance
+                            float dist = dx * dx + dy * dy;
                             if (dist < minDistance) {
                                 endPos = candidate;
                                 minDistance = dist;
@@ -472,6 +543,7 @@ public:
                                 endPos = candidate;
                                 minDistance = dist;
                                 foundEnd = true;
+
                             }
                         }
                     }
@@ -495,16 +567,11 @@ public:
                     if (foundEnd) {
                         campus.setCustomPath(startPos, endPos);
                         currentDestCell = endPos;
+                        state = MAIN_GAME;
+                        searchQuery.clear();
+                        searchResults.clear();
                     }
-                    state = MAIN_GAME;
                 }
-            }
-            
-            // Cancel path selection with R
-            if (IsKeyPressed(KEY_R)) {
-                state = MAIN_GAME;
-                selectedStartBuilding = -1;
-                selectedEndBuilding = -1;
             }
             
         } else if (state == REGISTRATION) {
@@ -578,6 +645,39 @@ public:
                     DrawText(hudLine2.c_str(), x + 12, y + 8 + fontSize * 2, fontSize, SKYBLUE);
                 }
             }
+
+            // Draw path/navigation info - steps remaining, time remaining, and destination
+            const vector<Vector2>& currentPath = campus.getCurrentPath();
+            if (selectedEndBuilding >= 0 && !currentPath.empty()) {
+                int stepsRemaining = (int)currentPath.size();
+                float timeRemainingSeconds = 1.5f * stepsRemaining;  // 1.5 seconds per step is more realistic
+                float timeRemainingMinutes = timeRemainingSeconds / 60.0f;
+                Building* destBuilding = campus.getBuilding(selectedEndBuilding);
+                string destName = (destBuilding) ? destBuilding->getName() : "Unknown";
+                
+                // Manual formatting for display
+                char stepsStr[64], timeStr[64];
+                snprintf(stepsStr, sizeof(stepsStr), "Steps Remaining: %d", stepsRemaining);
+                if (timeRemainingMinutes >= 1.0f) {
+                    snprintf(timeStr, sizeof(timeStr), "Time Remaining: %.1f min", timeRemainingMinutes);
+                } else {
+                    snprintf(timeStr, sizeof(timeStr), "Time Remaining: %.0f sec", timeRemainingSeconds);
+                }
+                string destLine = "Destination: " + destName;
+                
+                int fontSize = 18;
+                int textWidth = MeasureTextEx(gameFont, stepsStr, fontSize, 0).x;
+                textWidth = max(textWidth, (int)MeasureTextEx(gameFont, timeStr, fontSize, 0).x);
+                textWidth = max(textWidth, (int)MeasureTextEx(gameFont, destLine.c_str(), fontSize, 0).x);
+                int width = textWidth + 24;
+                int height = fontSize * 3 + 28;
+                int x = WINDOW_WIDTH - width - 20;
+                int y = WINDOW_HEIGHT - height - 5;
+                DrawRectangleRounded({(float)x, (float)y, (float)width, (float)height}, 0.2f, 8, Fade(BLACK, 0.55f));
+                DrawTextEx(gameFont, stepsStr, Vector2{(float)(x + 12), (float)(y + 8)}, fontSize, 0, WHITE);
+                DrawTextEx(gameFont, timeStr, Vector2{(float)(x + 12), (float)(y + 8 + fontSize)}, fontSize, 0, WHITE);
+                DrawTextEx(gameFont, destLine.c_str(), Vector2{(float)(x + 12), (float)(y + 8 + fontSize * 2)}, fontSize, 0, WHITE);
+            }
             
             // Show "Press K to mark attendance" prompt when in correct building
             if (scheduler.getSelectedYear() > 0) {
@@ -630,33 +730,61 @@ public:
                     float pixelWidth = (bottomRight.x - topLeft.x + 1) * CELL_WIDTH;
                     float pixelHeight = (bottomRight.y - topLeft.y + 1) * CELL_HEIGHT;
                     
-                    // check if mouse is hovering over this building
+                    // Highlight if in search results or hovered
+                    bool inSearchResults = false;
+                    for (int idx : searchResults) {
+                        if (idx == i) {
+                            inSearchResults = true;
+                            break;
+                        }
+                    }
+                    bool isSelectedResult = (searchSelectedIndex >= 0 && searchSelectedIndex < (int)searchResults.size() && searchResults[searchSelectedIndex] == i);
                     bool isHovered = b->contains(gridPos);
                     if (isHovered) {
                         hoveredBuilding = i;
                     }
                     
-                    // Draw building rectangle with highlight if hovered
-                    Color buildingColor = isHovered ? Fade(YELLOW, 0.6f) : Fade(GREEN, 0.4f);
-                    DrawRectangle(pixelX, pixelY, pixelWidth, pixelHeight, buildingColor);
-                    DrawRectangleLines(pixelX, pixelY, pixelWidth, pixelHeight, isHovered ? YELLOW : GREEN);
+                    // Draw building rectangle with highlight if hovered or in search results
+                    Color baseColor = Fade(GREEN, 0.4f);
+                    if (inSearchResults || isHovered) baseColor = Fade(YELLOW, 0.6f);
+                    if (isSelectedResult) baseColor = Fade(YELLOW, 0.65f);
+                    DrawRectangle(pixelX, pixelY, pixelWidth, pixelHeight, baseColor);
+                    DrawRectangleLines(pixelX, pixelY, pixelWidth, pixelHeight, isSelectedResult ? YELLOW : (isHovered || inSearchResults ? YELLOW : GREEN));
                 }
             }
             
-            // instructions 
-            const char* title = "SELECT DESTINATION FOR SHORTEST PATH";
-            int titleWidth = MeasureText(title, 40);
-            DrawText(title, WINDOW_WIDTH/2 - titleWidth/2, 50, 40, DARKGREEN);
+            // Draw search UI
+            int searchBoxX = 50;
+            int searchBoxY = 50;
+            int searchBoxW = 500;
+            int searchBoxH = 50;
+            DrawRectangleRounded({(float)searchBoxX, (float)searchBoxY, (float)searchBoxW, (float)searchBoxH}, 0.1f, 8, Fade(BLACK, 0.7f));
+            DrawRectangleRoundedLines({(float)searchBoxX, (float)searchBoxY, (float)searchBoxW, (float)searchBoxH}, 0.1f, 8, RAYWHITE);
             
-            if (selectedEndBuilding < 0) {
-                const char* instruction = "Click a building to select DESTINATION";
-                int instrWidth = MeasureText(instruction, 24);
-                DrawText(instruction, WINDOW_WIDTH/2 - instrWidth/2, 120, 24, GREEN);
+            // Draw search text
+            string searchDisplay = "Search: " + searchQuery + "|";
+            DrawText(searchDisplay.c_str(), searchBoxX + 15, searchBoxY + 12, 18, RAYWHITE);
+            
+            // Draw search results below search box
+            int resultBoxX = searchBoxX;
+            int resultBoxY = searchBoxY + searchBoxH + 10;
+            int resultBoxW = searchBoxW;
+            int maxResults = 6;
+            int resultBoxH = maxResults * 30 + 10;
+            
+            if (!searchResults.empty()) {
+                DrawRectangleRounded({(float)resultBoxX, (float)resultBoxY, (float)resultBoxW, (float)resultBoxH}, 0.1f, 8, Fade(BLACK, 0.7f));
+                DrawRectangleRoundedLines({(float)resultBoxX, (float)resultBoxY, (float)resultBoxW, (float)resultBoxH}, 0.1f, 8, SKYBLUE);
+                
+                for (size_t i = 0; i < searchResults.size() && i < maxResults; i++) {
+                    Building* b = campus.getBuilding(searchResults[i]);
+                    if (b) {
+                        bool isSelected = (searchSelectedIndex == (int)i);
+                        Color textColor = isSelected ? YELLOW : RAYWHITE;
+                        DrawText(b->getName().c_str(), resultBoxX + 15, resultBoxY + 10 + (int)i * 30, 16, textColor);
+                    }
+                }
             }
-            
-            const char* cancelText = "Press R to cancel";
-            int cancelWidth = MeasureText(cancelText, 16);
-            DrawText(cancelText, WINDOW_WIDTH/2 - cancelWidth/2, WINDOW_HEIGHT - 40, 16, LIGHTGRAY);
             drawNotification();
         } else if (state == TIMETABLE_VIEW) {
             scheduler.draw(gameFont);

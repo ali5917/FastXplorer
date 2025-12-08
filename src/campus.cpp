@@ -66,9 +66,9 @@ void Campus::initializeGrid() {
         {1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1},
         {1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0,1,1,1,1,1},
         {1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1,1,1,1,1},
-        {0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+        {0,0,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1},
+        {0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0},
+        {0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}
     };
     
     memcpy(grid, campusLayout, sizeof(campusLayout));
@@ -157,9 +157,8 @@ std::vector<Vector2> Campus::findPath(Vector2 start, Vector2 dest) {
         return path; // returns empty path
     }
     
-    // Graph BFS ke marks :)
-    bool visited[GRID_ROWS][GRID_COLS];
-    memset(visited, false, sizeof(visited));
+    
+    bool visited[GRID_ROWS][GRID_COLS] = {false};
     
     Vector2 parent[GRID_ROWS][GRID_COLS];
     for (int i = 0; i < GRID_ROWS; i++) {
@@ -263,9 +262,15 @@ void Campus::drawPath() const {
         DrawLineEx(start, end, 3, YELLOW);
     }
 
-    for (const auto& cell : currentPath) {
-        Rectangle pathCell = {cell.x * CELL_WIDTH, cell.y * CELL_HEIGHT, 
-                             CELL_WIDTH, CELL_HEIGHT};
-        DrawRectangleLinesEx(pathCell, 2, YELLOW);
-    }
+    // for (const auto& cell : currentPath) {
+    //     Rectangle pathCell = {cell.x * CELL_WIDTH, cell.y * CELL_HEIGHT, 
+    //                          CELL_WIDTH, CELL_HEIGHT};
+    //     DrawRectangleLinesEx(pathCell, 2, YELLOW);
+    // }
+    Vector2 cell = currentPath.front();
+    Rectangle pathCell = {cell.x * CELL_WIDTH, cell.y * CELL_HEIGHT,CELL_WIDTH, CELL_HEIGHT};
+    DrawRectangleLinesEx(pathCell, 2, YELLOW);
+    cell = currentPath.back();
+    pathCell = {cell.x * CELL_WIDTH, cell.y * CELL_HEIGHT,CELL_WIDTH, CELL_HEIGHT};
+    DrawRectangleLinesEx(pathCell, 2,GREEN);
 }

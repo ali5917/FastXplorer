@@ -2,8 +2,6 @@
 **Campus Navigation & Management Simulator**  
 Data Structures Project - FAST NU Semester 3
 
----
-
 ## 1. Project Overview
 
 FastXplorer is an interactive campus navigation and management simulator built using C++ and the Raylib graphics library. The system provides a comprehensive solution for students to navigate a virtual campus environment, manage their academic schedules, and experience an immersive campus life simulation.
@@ -24,8 +22,6 @@ The application features a 2D top-down view of the FAST NUCES campus with realis
 - **Language**: C++ (Standard 11+)
 - **Graphics Library**: Raylib 5.0
 - **Development Environment**: Visual Studio Code
-
----
 
 ## 2. Objectives
 
@@ -58,8 +54,6 @@ The application features a 2D top-down view of the FAST NUCES campus with realis
    - Ensure smooth transitions between different game states (intro, main game, registration, timetable view)
    - Maintain persistent data through CSV file storage
    - Synchronize building accessibility with academic schedule
-
----
 
 ## 3. System Modules
 
@@ -325,8 +319,6 @@ The application features a 2D top-down view of the FAST NUCES campus with realis
 
 **Purpose**: Ensures consistency across all modules and enables easy parameter tuning
 
----
-
 ## 4. Results (Project Outcomes)
 
 ### 4.1 Functional Achievements
@@ -369,11 +361,11 @@ The application features a 2D top-down view of the FAST NUCES campus with realis
 ### 4.2 Technical Achievements
 
 **Data Structures Implementation**:
-- ✅ Min-Heap: Successfully schedules courses in O(log n) time
-- ✅ Circular Doubly-Linked List: Manages music playlist efficiently
-- ✅ Queue (BFS): Finds shortest paths in O(V+E) time
-- ✅ 2D Grid: Represents campus layout with constant-time lookups
-- ✅ Vectors: Dynamic storage for buildings, paths, courses
+- Min-Heap: Successfully schedules courses in O(log n) time
+- Circular Doubly-Linked List: Manages music playlist efficiently
+- Queue (BFS): Finds shortest paths in O(V+E) time
+- 2D Grid: Represents campus layout with constant-time lookups
+- Vectors: Dynamic storage for buildings, paths, courses
 
 **Algorithm Performance**:
 - Pathfinding: Handles 528 grid cells (22×24) efficiently
@@ -387,67 +379,3 @@ The application features a 2D top-down view of the FAST NUCES campus with realis
 - Object-oriented design with proper encapsulation
 - Resource management with constructors/destructors
 - Consistent naming conventions and code formatting
-
-### 4.3 Learning Outcomes
-
-**Data Structures Mastery**:
-- Practical understanding of heap operations and heap property maintenance
-- Real-world application of linked list variations (circular, doubly)
-- Graph algorithms for pathfinding in game development
-- Trade-offs between different data structure choices
-
-**Game Development Skills**:
-- Game loop architecture (update-render pattern)
-- State machine design for complex application flow
-- Delta time for frame-independent movement
-- Collision detection algorithms
-- Texture and resource management
-
-**C++ Programming**:
-- Advanced use of classes, constructors, and destructors
-- Pointer manipulation for linked structures
-- File I/O for data persistence
-- String processing and parsing
-- Memory management and leak prevention
-
-**Software Engineering**:
-- Project structuring and build system (Makefile)
-- Version control and code organization
-- Problem decomposition into manageable modules
-- Integration testing across multiple components
-
-### 4.4 Demonstrated Competencies
-
-**Problem-Solving**:
-- Solved building trapping issue by maintaining previous building accessibility
-- Implemented dynamic walkability to prevent invalid navigation
-- Handled nested buildings (classrooms inside academic blocks) correctly
-- Designed edge detection for pathfinding around building perimeters
-
-**System Integration**:
-- Successfully integrated 7 major modules into cohesive system
-- Synchronized schedule with building access control
-- Connected player position to attendance eligibility
-- Linked music player to game state for continuous playback
-
-**User Experience Design**:
-- Implemented non-intrusive notification system
-- Provided real-time feedback (steps remaining, time estimate)
-- Created intuitive search interface with keyboard input
-- Designed clear visual indicators (path colors, highlighted buildings)
-
-### 4.5 Conclusion
-
-FastXplorer successfully demonstrates the practical application of fundamental data structures in a real-world interactive application. The project achieves all primary objectives:
-
-1. ✅ Efficient campus navigation with optimal pathfinding
-2. ✅ Robust academic schedule management with automated timetabling
-3. ✅ Comprehensive data structure implementations (heaps, linked lists, queues, grids)
-4. ✅ Polished user experience with intuitive controls and feedback
-5. ✅ Seamless system integration across multiple complex modules
-
-The project serves as both a functional campus navigation tool and an educational demonstration of data structures in action. Performance metrics exceed targets across all categories, and the codebase is maintainable and extensible for future enhancements.
-
-**Key Takeaway**: Data structures are not just theoretical concepts—they are essential building blocks for creating efficient, scalable, and user-friendly software systems. FastXplorer proves that careful selection and implementation of appropriate data structures can transform a simple idea into a sophisticated, high-performance application.
-
----
